@@ -54,7 +54,7 @@ and removing calls to _DoWork will yield the same results. */
 
 /* Paste in the your iothub connection string  */
 static const char* connectionString = "[device connection string]";
-#define MESSAGE_COUNT        5
+#define MESSAGE_COUNT        5000
 static bool g_continueRunning = true;
 static size_t g_message_count_send_confirmations = 0;
 
@@ -181,7 +181,7 @@ int main(void)
             }
 
             IoTHubDeviceClient_LL_DoWork(device_ll_handle);
-            ThreadAPI_Sleep(1);
+            ThreadAPI_Sleep(750);
 
         } while (g_continueRunning);
 
