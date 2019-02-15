@@ -52,11 +52,13 @@ and removing calls to _DoWork will yield the same results. */
 #include "certs.h"
 #endif // SET_TRUSTED_CERT_IN_SAMPLES
 
+// <snippet_config>
 /* Paste in the your iothub connection string  */
 static const char* connectionString = "[device connection string]";
 #define MESSAGE_COUNT        5000
 static bool g_continueRunning = true;
 static size_t g_message_count_send_confirmations = 0;
+// </snippet_config>
 
 static void send_confirm_callback(IOTHUB_CLIENT_CONFIRMATION_RESULT result, void* userContextCallback)
 {
@@ -138,20 +140,17 @@ int main(void)
         //bool urlEncodeOn = true;
         //IoTHubDeviceClient_LL_SetOption(iothub_ll_handle, OPTION_AUTO_URL_ENCODE_DECODE, &urlEncodeOn);
 #endif
-
+        // <snippet_tracing>
         // Setting connection status callback to get indication of connection to iothub
         (void)IoTHubDeviceClient_LL_SetConnectionStatusCallback(device_ll_handle, connection_status_callback, NULL);
-        (void)IoTHubDeviceClient_LL_EnablePolicyConfiguration(device_ll_handle, POLICY_CONFIGURATION_DISTRIBUTED_TRACING, true);
 
-        for (int i = 0; i < 1000; i++)
-        {
-            IoTHubDeviceClient_LL_DoWork(device_ll_handle);
-            ThreadAPI_Sleep(1);
-        }
+        // Enabled the distrubted tracing policy for the device
+        (void)IoTHubDeviceClient_LL_EnablePolicyConfiguration(device_ll_handle, POLICY_CONFIGURATION_DISTRIBUTED_TRACING, true);
 
         do
         {
             if (messages_sent < MESSAGE_COUNT)
+        // </snippet_tracing>
             {
                 // Construct the iothub message from a string or a byte array
                 message_handle = IoTHubMessage_CreateFromString(telemetry_msg);
@@ -174,6 +173,7 @@ int main(void)
 
                 messages_sent++;
             }
+        // <snippet_sleep>
             else if (g_message_count_send_confirmations >= MESSAGE_COUNT)
             {
                 // After all messages are all received stop running
@@ -181,9 +181,10 @@ int main(void)
             }
 
             IoTHubDeviceClient_LL_DoWork(device_ll_handle);
-            ThreadAPI_Sleep(750);
+            ThreadAPI_Sleep(1000);
 
         } while (g_continueRunning);
+        // </snippet_sleep>
 
         // Clean up the iothub sdk handle
         IoTHubDeviceClient_LL_Destroy(device_ll_handle);
