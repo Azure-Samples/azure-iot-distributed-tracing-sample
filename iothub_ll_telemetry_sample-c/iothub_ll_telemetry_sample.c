@@ -89,6 +89,10 @@ int main(void)
     IOTHUB_MESSAGE_HANDLE message_handle;
     size_t messages_sent = 0;
     const char* telemetry_msg = "test_message";
+    time_t before = 0;
+    time_t now;
+    double timeSinceLastMessageSent;
+    float currentMessagesPerMinute = 60;
 
     // Select the Protocol to use with the connection
 #ifdef SAMPLE_MQTT
@@ -143,37 +147,42 @@ int main(void)
         // <snippet_tracing>
         // Setting connection status callback to get indication of connection to iothub
         (void)IoTHubDeviceClient_LL_SetConnectionStatusCallback(device_ll_handle, connection_status_callback, NULL);
-
+        
         // Enabled the distrubted tracing policy for the device
         (void)IoTHubDeviceClient_LL_EnablePolicyConfiguration(device_ll_handle, POLICY_CONFIGURATION_DISTRIBUTED_TRACING, true);
 
         do
         {
+            time(&now);
             if (messages_sent < MESSAGE_COUNT)
-        // </snippet_tracing>
+            // </snippet_tracing>
             {
-                // Construct the iothub message from a string or a byte array
-                message_handle = IoTHubMessage_CreateFromString(telemetry_msg);
-                //message_handle = IoTHubMessage_CreateFromByteArray((const unsigned char*)msgText, strlen(msgText)));
+                timeSinceLastMessageSent = difftime(now, before);
+                if (timeSinceLastMessageSent >= ( 60 / currentMessagesPerMinute)) {
+                    // Construct the iothub message from a string or a byte array
+                    message_handle = IoTHubMessage_CreateFromString(telemetry_msg);
+                    //message_handle = IoTHubMessage_CreateFromByteArray((const unsigned char*)msgText, strlen(msgText)));
 
-                // Set Message property
-                /*(void)IoTHubMessage_SetMessageId(message_handle, "MSG_ID");
-                (void)IoTHubMessage_SetCorrelationId(message_handle, "CORE_ID");
-                (void)IoTHubMessage_SetContentTypeSystemProperty(message_handle, "application%2fjson");
-                (void)IoTHubMessage_SetContentEncodingSystemProperty(message_handle, "utf-8");*/
+                    // Set Message property
+                    /*(void)IoTHubMessage_SetMessageId(message_handle, "MSG_ID");
+                    (void)IoTHubMessage_SetCorrelationId(message_handle, "CORE_ID");
+                    (void)IoTHubMessage_SetContentTypeSystemProperty(message_handle, "application%2fjson");
+                    (void)IoTHubMessage_SetContentEncodingSystemProperty(message_handle, "utf-8");*/
 
-                // Add custom properties to message
-                (void)IoTHubMessage_SetProperty(message_handle, "property_key", "property_value");
+                    // Add custom properties to message
+                    (void)IoTHubMessage_SetProperty(message_handle, "property_key", "property_value");
 
-                (void)printf("Sending message %d to IoTHub\r\n", (int)(messages_sent + 1));
-                IoTHubDeviceClient_LL_SendEventAsync(device_ll_handle, message_handle, send_confirm_callback, NULL);
+                    (void)printf("Sending message %d to IoTHub\r\n", (int)(messages_sent + 1));
+                    IoTHubDeviceClient_LL_SendEventAsync(device_ll_handle, message_handle, send_confirm_callback, NULL);
 
-                // The message is copied to the sdk so the we can destroy it
-                IoTHubMessage_Destroy(message_handle);
+                    // The message is copied to the sdk so the we can destroy it
+                    IoTHubMessage_Destroy(message_handle);
 
-                messages_sent++;
+                    messages_sent++;
+                    before = now;
+                }
             }
-        // <snippet_sleep>
+            // <snippet_sleep>
             else if (g_message_count_send_confirmations >= MESSAGE_COUNT)
             {
                 // After all messages are all received stop running
@@ -181,7 +190,7 @@ int main(void)
             }
 
             IoTHubDeviceClient_LL_DoWork(device_ll_handle);
-            ThreadAPI_Sleep(1000);
+            ThreadAPI_Sleep(50);
 
         } while (g_continueRunning);
         // </snippet_sleep>
